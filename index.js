@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const express = require('express');
 const app= express();
@@ -23,12 +23,81 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
+const queryCollection = client.db("queryDB").collection('query');
+
+app.post('/query',async(req,res)=>{
+  const {
+    productName,
+    productBrand,
+    productImage,
+    queryTitle,
+    boycottingReason,
+    email,
+    name,
+    photo,
+    createdAt,
+    recommendationCount
+} = req.body;
+
+const newQuery = {
+    productName,
+    productBrand,
+    productImage,
+    queryTitle,
+    boycottingReason,
+    email,
+    name,
+    photo,
+    createdAt: createdAt, // Current date and time from client
+    recommendationCount: recommendationCount || 0, // Default value is 0 if not provided
+};
+  const result = await queryCollection.insertOne(newQuery);
+  res.send(result);
+})
+
+app.get('/query',async(req,res)=>{
+  const cursor = queryCollection.find();
+  const result = await cursor.toArray();
+  res.send(result)
+})
+app.get('/query/:id',async(req,res)=>{
+  const id = req.params.id;
+  const query = {_id:new ObjectId(id)};
+  const result = await queryCollection.findOne(query);
+  res.send(result)
+})
+
+app.put('/query/:id',async(req,res) =>{
+  const id = req.params.id;
+  const filter = {_id:new ObjectId(id)};
+  const options = {upsert:true};
+  const updatedQuery = req.body;
+  const updateQuery = {
+    $set:{
+      productName:updatedQuery.productName,
+      productBrand:updatedQuery.productBrand,
+      productImage:updatedQuery.productImage,
+      queryTitle:updatedQuery.queryTitle,
+      boycottingReason:updatedQuery.boycottingReason,
+    }
+  }
+  const result = await queryCollection.updateOne(filter,updateQuery);
+  res.send(result);
+})
+
+app.delete('/query/:id',async(req,res)=>{
+  const id = req.params.id;
+  const query = {_id:new ObjectId(id)};
+  const result = await queryCollection.deleteOne(query);
+  res.send(result)
+  })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
   }
 }
 run().catch(console.dir);
