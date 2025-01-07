@@ -25,6 +25,8 @@ async function run() {
     await client.connect();
 
 const queryCollection = client.db("queryDB").collection('query');
+const recommendationCollection = client.db("queryDB").collection("recommendation");
+
 
 app.post('/query',async(req,res)=>{
   const {
@@ -49,12 +51,30 @@ const newQuery = {
     email,
     name,
     photo,
-    createdAt: createdAt, // Current date and time from client
-    recommendationCount: recommendationCount || 0, // Default value is 0 if not provided
+    createdAt: createdAt, 
+    recommendationCount: recommendationCount || 0, 
 };
   const result = await queryCollection.insertOne(newQuery);
   res.send(result);
 })
+
+app.post('/recommendation', async (req, res) => {
+  const recommendation = req.body;
+  const result = await recommendationCollection.insertOne(recommendation);
+  res.send(result);
+});
+app.get('/recommendation',async(req,res)=>{
+  const cursor = recommendationCollection.find();
+  const result = await cursor.toArray();
+  res.send(result)
+})
+app.get('/recommendation/:id', async (req, res) => {
+  const id = req.params.id;
+  const cursor = recommendationCollection.find({ queryId : id});
+  const result = await cursor.toArray();
+  res.send(result);
+});
+
 
 app.get('/query',async(req,res)=>{
   const cursor = queryCollection.find();
@@ -85,6 +105,15 @@ app.put('/query/:id',async(req,res) =>{
   const result = await queryCollection.updateOne(filter,updateQuery);
   res.send(result);
 })
+
+app.patch("/query/:id/increment", async (req, res) => {
+  const queryId = req.params.id;
+    const result = await queryCollection.updateOne(
+      { _id:new ObjectId(queryId) },
+      { $inc: { recommendationCount: 1 } }
+    );
+res.send(result);
+});
 
 app.delete('/query/:id',async(req,res)=>{
   const id = req.params.id;
