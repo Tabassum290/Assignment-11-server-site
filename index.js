@@ -39,7 +39,7 @@ const newQuery = {
   res.send(result);
 })
 
-app.post('/recommendation', async (req, res) => {
+app.post('/recommendations', async (req, res) => {
   const recommendation = req.body;
   const result = await recommendationCollection.insertOne(recommendation);
   res.send(result);
@@ -50,38 +50,29 @@ app.get('/recommendation',async(req,res)=>{
   const result = await recommendationCollection.find({ recommenderEmail: email }).toArray();
   res.send(result)
 })
+
+app.get('/recommendationforme',async(req,res)=>{
+  const {email}= req.query;
+  const result = await recommendationCollection.find({ userEmail: email }).toArray();
+  res.send(result)
+})
+
 app.get('/recommendations',async(req,res)=>{
   const cursor = recommendationCollection.find();
   const result = await cursor.toArray();
   res.send(result)
 })
 
-app.get('/recommendation/:id', async (req, res) => {
+app.get('/recommendations/:id', async (req, res) => {
   const id = req.params.id;
   const cursor = recommendationCollection.find({ queryId : id});
   const result = await cursor.toArray();
   res.send(result);
 });
 
-// app.get('/recommendations', async (req, res) => {
-//   const { email } = req.query; // Get user's email from query parameter
-
-//   // Fetch the user's queries first
-//   const userQueries = await queryCollection.find({ email : email }).toArray();
-//   console.log("User's Queries:", userQueries);
-//   // Fetch recommendations made by other users for the user's queries
-//   const recommendations = await recommendationCollection.find({
-//     queryId: { $in: userQueries.map(query => query._id) }, // Match the recommendations with user's queries
-//     recommenderEmail: { $ne: email },  // Ensure the recommendations are from other users
-//   }).toArray();
-
-//   res.send(recommendations); // Send the recommendations back to the frontend
-// });
-
-
 
 app.get('/query',async(req,res)=>{
-  const cursor = queryCollection.find();
+  const cursor = queryCollection.find().sort({ createdAt: -1 });
   const result = await cursor.toArray();
   res.send(result)
 })
