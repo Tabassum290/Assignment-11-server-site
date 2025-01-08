@@ -29,31 +29,12 @@ const recommendationCollection = client.db("queryDB").collection("recommendation
 
 
 app.post('/query',async(req,res)=>{
-  const {
-    productName,
-    productBrand,
-    productImage,
-    queryTitle,
-    boycottingReason,
-    email,
-    name,
-    photo,
-    createdAt,
-    recommendationCount
+  const { productName,productBrand,productImage,queryTitle,boycottingReason,email,name,photo,createdAt,recommendationCount
 } = req.body;
 
 const newQuery = {
-    productName,
-    productBrand,
-    productImage,
-    queryTitle,
-    boycottingReason,
-    email,
-    name,
-    photo,
-    createdAt: createdAt, 
-    recommendationCount: recommendationCount || 0, 
-};
+  productName,productBrand,productImage,queryTitle,boycottingReason,email,name,photo, createdAt: createdAt, 
+    recommendationCount: recommendationCount || 0 };
   const result = await queryCollection.insertOne(newQuery);
   res.send(result);
 })
@@ -63,11 +44,18 @@ app.post('/recommendation', async (req, res) => {
   const result = await recommendationCollection.insertOne(recommendation);
   res.send(result);
 });
+
 app.get('/recommendation',async(req,res)=>{
   const {email}= req.query;
   const result = await recommendationCollection.find({ recommenderEmail: email }).toArray();
   res.send(result)
 })
+app.get('/recommendations',async(req,res)=>{
+  const cursor = recommendationCollection.find();
+  const result = await cursor.toArray();
+  res.send(result)
+})
+
 app.get('/recommendation/:id', async (req, res) => {
   const id = req.params.id;
   const cursor = recommendationCollection.find({ queryId : id});
@@ -75,12 +63,29 @@ app.get('/recommendation/:id', async (req, res) => {
   res.send(result);
 });
 
+// app.get('/recommendations', async (req, res) => {
+//   const { email } = req.query; // Get user's email from query parameter
+
+//   // Fetch the user's queries first
+//   const userQueries = await queryCollection.find({ email : email }).toArray();
+//   console.log("User's Queries:", userQueries);
+//   // Fetch recommendations made by other users for the user's queries
+//   const recommendations = await recommendationCollection.find({
+//     queryId: { $in: userQueries.map(query => query._id) }, // Match the recommendations with user's queries
+//     recommenderEmail: { $ne: email },  // Ensure the recommendations are from other users
+//   }).toArray();
+
+//   res.send(recommendations); // Send the recommendations back to the frontend
+// });
+
+
 
 app.get('/query',async(req,res)=>{
   const cursor = queryCollection.find();
   const result = await cursor.toArray();
   res.send(result)
 })
+
 app.get('/query/:id',async(req,res)=>{
   const id = req.params.id;
   const query = {_id:new ObjectId(id)};
@@ -114,13 +119,21 @@ app.patch("/query/:id/increment", async (req, res) => {
     );
 res.send(result);
 });
+app.patch("/query/:id/decrement", async (req, res) => {
+  const queryId = req.params.id;
+    const result = await queryCollection.updateOne(
+      { _id:new ObjectId(queryId) },
+      { $inc: { recommendationCount: -1 } }
+    );
+res.send(result);
+});
 
-// app.get('/equipmenthome', async (req, res) => {
-//   const limit = parseInt(req.query.limit) || 6;
-//   const cursor = equipmentCollection.find().limit(limit);
-//   const result = await cursor.toArray();
-//   res.send(result);
-// });
+app.get('/queryhome', async (req, res) => {
+  const limit = parseInt(req.query.limit) || 6;
+  const cursor = queryCollection.find().sort({ createdAt: -1 }).limit(limit);
+  const result = await cursor.toArray();
+  res.send(result);
+});
 
 app.delete('/query/:id',async(req,res)=>{
   const id = req.params.id;
@@ -128,12 +141,15 @@ app.delete('/query/:id',async(req,res)=>{
   const result = await queryCollection.deleteOne(query);
   res.send(result)
   })
-app.delete('/recommendation/:id',async(req,res)=>{
-const id = req.params.id;
-const recom = {_id:new ObjectId(id)};
+
+  app.delete('/recommendation/:id', async (req, res) => {
+    const id = req.params.id;
+    const recom = { _id: new ObjectId(id) };
 const result = await recommendationCollection.deleteOne(recom);
-res.send(result);
-})
+res.send({result });
+
+  });
+  
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
