@@ -64,8 +64,8 @@ app.post('/recommendation', async (req, res) => {
   res.send(result);
 });
 app.get('/recommendation',async(req,res)=>{
-  const cursor = recommendationCollection.find();
-  const result = await cursor.toArray();
+  const {email}= req.query;
+  const result = await recommendationCollection.find({ recommenderEmail: email }).toArray();
   res.send(result)
 })
 app.get('/recommendation/:id', async (req, res) => {
@@ -115,13 +115,25 @@ app.patch("/query/:id/increment", async (req, res) => {
 res.send(result);
 });
 
+// app.get('/equipmenthome', async (req, res) => {
+//   const limit = parseInt(req.query.limit) || 6;
+//   const cursor = equipmentCollection.find().limit(limit);
+//   const result = await cursor.toArray();
+//   res.send(result);
+// });
+
 app.delete('/query/:id',async(req,res)=>{
   const id = req.params.id;
   const query = {_id:new ObjectId(id)};
   const result = await queryCollection.deleteOne(query);
   res.send(result)
   })
-
+app.delete('/recommendation/:id',async(req,res)=>{
+const id = req.params.id;
+const recom = {_id:new ObjectId(id)};
+const result = await recommendationCollection.deleteOne(recom);
+res.send(result);
+})
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
