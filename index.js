@@ -72,9 +72,14 @@ app.get('/recommendations/:id', async (req, res) => {
 
 
 app.get('/query',async(req,res)=>{
-  const cursor = queryCollection.find().sort({ createdAt: -1 });
+  const search = req.query?.search;
+  const query = {};
+  if(search){
+    query.productName = {$regex : search, $options : "i"};
+  }
+  const cursor = queryCollection.find(query).sort({ createdAt: -1 });
   const result = await cursor.toArray();
-  res.send(result)
+res.send(result)
 })
 
 app.get('/query/:id',async(req,res)=>{
