@@ -1,12 +1,38 @@
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
+const jwt = require('jsonwebtoken')
 const express = require('express');
 const app= express();
 const port = process.env.PORT || 4000;
 const cors = require ('cors');
+const cookieParser = require('cookie-parser');
 
-app.use(cors());
+const corsOptions = {
+  origin: ['http://localhost:5173','https://query-nest.netlify.app'],
+  credentials:true, 
+  optionalSuccessStatus:200,
+}
+
+app.use(cors(corsOptions));
 app.use(express.json())
+app.use(cookieParser()); 
+
+const verifyToken = (req,res,next)=>{
+  console.log('inside verify token',req.cookies);
+  const token = req?.cookies?.token;
+  if(!token){
+    return res.status(401).send({message: 'Unauthorized access'});
+  }
+  jwt.verify(token, process.env.SECRET_KEY, (err,decoded) =>{
+    if(err){
+      return res.status(401).send({message:'UnAuthorized access'})
+    }
+    req.user = decoded;
+    next();
+  })
+
+}
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ejql3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -22,10 +48,29 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
 const queryCollection = client.db("queryDB").collection('query');
 const recommendationCollection = client.db("queryDB").collection("recommendation");
+
+
+app.post('/query/jwt', async (req, res) => {
+  const  email  = req.body; 
+  const token = jwt.sign( email , process.env.SECRET_KEY, { expiresIn: '3h' }); 
+  res.cookie( 'token',token,{
+    httpOnly: true,
+    secure:process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+  } ).send({success : true}); 
+});
+
+app.post('/logout',async(req,res)=>{
+  res.clearCookie('token',{
+    httpOnly:true,
+    secure:false
+  })
+  .send({ success:true })
+})
 
 
 app.post('/query',async(req,res)=>{
@@ -73,12 +118,14 @@ app.get('/recommendations/:id', async (req, res) => {
 
 app.get('/query',async(req,res)=>{
   const search = req.query?.search;
+  const size = parseInt(req.query.size)
+  const page = parseInt(req.query.page)
   const query = {};
   if(search){
     query.productName = {$regex : search, $options : "i"};
   }
   const cursor = queryCollection.find(query).sort({ createdAt: -1 });
-  const result = await cursor.toArray();
+  const result = await cursor.skip(page * size).limit(size).toArray();
 res.send(result)
 })
 
@@ -88,6 +135,12 @@ app.get('/query/:id',async(req,res)=>{
   const result = await queryCollection.findOne(query);
   res.send(result)
 })
+
+app.get('/queryCount',async(req,res)=>{
+  const count = await queryCollection.estimatedDocumentCount();
+  res.send({count});
+})
+
 
 app.put('/query/:id',async(req,res) =>{
   const id = req.params.id;
@@ -115,6 +168,7 @@ app.patch("/query/:id/increment", async (req, res) => {
     );
 res.send(result);
 });
+
 app.patch("/query/:id/decrement", async (req, res) => {
   const queryId = req.params.id;
     const result = await queryCollection.updateOne(
@@ -147,8 +201,8 @@ res.send({result });
   });
   
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
   }
