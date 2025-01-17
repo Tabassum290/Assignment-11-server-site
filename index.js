@@ -168,14 +168,14 @@ app.patch("/query/:id/increment", async (req, res) => {
     );
 res.send(result);
 });
-
-app.patch("/query/:id/decrement", async (req, res) => {
-  const queryId = req.params.id;
+app.patch('/query/:id/decrement', async (req, res) => {
+  const id = req.params.id;
     const result = await queryCollection.updateOne(
-      { _id:new ObjectId(queryId) },
+      { _id: new ObjectId(id) },
       { $inc: { recommendationCount: -1 } }
-    );
-res.send(result);
+    )
+    res.send(result);
+
 });
 
 app.get('/queryhome', async (req, res) => {
@@ -195,8 +195,8 @@ app.delete('/query/:id',async(req,res)=>{
   app.delete('/recommendation/:id', async (req, res) => {
     const id = req.params.id;
     const recom = { _id: new ObjectId(id) };
-const result = await recommendationCollection.deleteOne(recom);
-res.send({result });
+   const result = await recommendationCollection.deleteOne(recom);
+   res.send({result });
 
   });
   
